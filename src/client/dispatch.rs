@@ -180,15 +180,16 @@ pub(crate) fn dispatch<'rec>(
 }
 
 #[cfg(not(feature = "framework"))]
-pub(crate) fn dispatch(
+pub(crate) fn dispatch<'rec>(
     event: DispatchEvent,
-    data: &Arc<RwLock<ShareMap>>,
-    event_handler: &Option<Arc<dyn EventHandler>>,
-    raw_event_handler: &Option<Arc<dyn RawEventHandler>>,
-    runner_tx: &Sender<InterMessage>,
+    data: &'rec Arc<RwLock<ShareMap>>,
+    event_handler: &'rec Option<Arc<dyn EventHandler>>,
+    raw_event_handler: &'rec Option<Arc<dyn RawEventHandler>>,
+    runner_tx: &'rec Sender<InterMessage>,
     shard_id: u64,
     cache_and_http: Arc<CacheAndHttp>,
-) {
+) -> BoxFuture<'rec, ()> {
+    async move {
     match (event_handler, raw_event_handler) {
         (None, None) => {}, // Do nothing
         (Some(ref h), None) => {
@@ -205,8 +206,7 @@ pub(crate) fn dispatch(
                         context.clone(),
                         event.message.clone(),
                         h,
-                        threadpool,
-                    );
+                    ).await;
                 },
                 other => {
                     handle_event(
@@ -214,7 +214,6 @@ pub(crate) fn dispatch(
                         data,
                         h,
                         runner_tx,
-                        threadpool,
                         shard_id,
                         cache_and_http,
                     ).await;
@@ -239,28 +238,25 @@ pub(crate) fn dispatch(
             }
         },
         (Some(ref h), Some(ref rh)) => {
-            match event {
-                DispatchEvent::Model(ref e) =>
+            if let DispatchEvent::Model(ref e) = event {
                     dispatch(DispatchEvent::Model(e.clone()),
                              data,
                              &None,
                              raw_event_handler,
                              runner_tx,
-                             threadpool,
                              shard_id,
-                             Arc::clone(&cache_and_http)),
-                _ => {}
+                             Arc::clone(&cache_and_http)).await;
             }
             dispatch(event,
                      data,
                      event_handler,
                      &None,
                      runner_tx,
-                     threadpool,
                      shard_id,
-                     cache_and_http);
+                     cache_and_http).await;
         }
     };
+    }.boxed()
 }
 
 async fn dispatch_message(
