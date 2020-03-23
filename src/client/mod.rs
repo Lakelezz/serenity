@@ -301,30 +301,6 @@ impl Client {
     /// Discord has a requirement of prefixing bot tokens with `"Bot "`, which
     /// this function will automatically do for you if not already included.
     ///
-    /// # Examples
-    ///
-    /// Create a Client, using a token from an environment variable:
-    ///
-    /// ```rust,no_run
-    /// # use serenity::prelude::EventHandler;
-    /// struct Handler;
-    ///
-    /// impl EventHandler for Handler {}
-    /// # use std::error::Error;
-    /// #
-    /// # fn try_main() -> Result<(), Box<Error>> {
-    /// use serenity::Client;
-    /// use std::env;
-    ///
-    /// let token = env::var("DISCORD_TOKEN")?;
-    /// let client = Client::new(&token, Handler)?;
-    /// # Ok(())
-    /// # }
-    /// #
-    /// # fn main() {
-    /// #    try_main().unwrap();
-    /// # }
-    /// ```
     #[cfg(feature = "framework")]
     pub async fn new_with_framework<H: EventHandler + 'static, F: Framework + Send + Sync + 'static>(token: impl AsRef<str>, handler: H, framework: F) -> Result<Self> {
         Self::new_with_extras(token, |e|
@@ -337,6 +313,25 @@ impl Client {
     /// Discord has a requirement of prefixing bot tokens with `"Bot "`, which
     /// this function will automatically do for you if not already included.
     ///
+    /// # Examples
+    ///
+    /// Create a Client, using a token from an environment variable:
+    ///
+    /// ```rust,no_run
+    /// # use std::error::Error;
+    /// # use serenity::prelude::EventHandler;
+    /// use serenity::Client;
+    ///
+    /// struct Handler;
+    ///
+    /// impl EventHandler for Handler {}
+    ///
+    /// # async fn run() -> Result<(), Box<dyn Error>> {
+    /// let token = std::env::var("DISCORD_TOKEN")?;
+    /// let client = Client::new(&token, Handler).await?;
+    /// #     Ok(())
+    /// # }
+    /// ```
     pub async fn new<H: EventHandler + 'static>(token: impl AsRef<str>, handler: H) -> Result<Self> {
         Self::new_with_extras(token, |e| e.event_handler(handler)).await
     }
