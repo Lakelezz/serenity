@@ -173,6 +173,8 @@ pub struct HelpOptions {
     pub guild_only_text: &'static str,
     /// Text labeling a command's names of checks.
     pub checks_label: &'static str,
+    /// Text labeling a command's subcommands
+    pub sub_commands_label: &'static str,
     /// Text specifying that a command is only usable in via DM.
     pub dm_only_text: &'static str,
     /// Text specifying that a command can be used via DM and in guilds.
