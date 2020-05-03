@@ -83,12 +83,12 @@ pub enum DispatchError {
     __Nonexhaustive,
 }
 
-type DispatchHook = for<'fut> fn(&'fut mut Context, &'fut Message, DispatchError) -> BoxFuture<'fut , ()>;
-type BeforeHook = for<'fut> fn(&'fut mut Context, &'fut Message, &'fut str) -> BoxFuture<'fut, bool>;
-type AfterHook = for<'fut> fn(&'fut mut Context, &'fut Message, &'fut str, Result<(), CommandError>) -> BoxFuture<'fut, ()>;
-type UnrecognisedHook = for<'fut> fn(&'fut mut Context, &'fut Message, &'fut str) -> BoxFuture<'fut, ()>;
-type NormalMessageHook = for<'fut> fn(&'fut mut Context, &'fut Message) -> BoxFuture<'fut, ()>;
-type PrefixOnlyHook = for<'fut> fn(&'fut mut Context, &'fut Message) -> BoxFuture<'fut, ()>;
+type DispatchHook = for<'fut> fn(&'fut Context, &'fut Message, DispatchError) -> BoxFuture<'fut , ()>;
+type BeforeHook = for<'fut> fn(&'fut Context, &'fut Message, &'fut str) -> BoxFuture<'fut, bool>;
+type AfterHook = for<'fut> fn(&'fut Context, &'fut Message, &'fut str, Result<(), CommandError>) -> BoxFuture<'fut, ()>;
+type UnrecognisedHook = for<'fut> fn(&'fut Context, &'fut Message, &'fut str) -> BoxFuture<'fut, ()>;
+type NormalMessageHook = for<'fut> fn(&'fut Context, &'fut Message) -> BoxFuture<'fut, ()>;
+type PrefixOnlyHook = for<'fut> fn(&'fut Context, &'fut Message) -> BoxFuture<'fut, ()>;
 
 /// A utility for easily managing dispatches to commands.
 ///
@@ -153,7 +153,7 @@ impl StandardFramework {
     ///         .with_whitespace(true)
     ///         .prefix("~"));
     ///
-    /// let mut client = Client::new_with_framework(&token, Handler, framework).await?;
+    /// let mut client = Client::new(&token).event_handler(Handler).framework(framework).await?;
     /// #     Ok(())
     /// # }
     /// ```
@@ -241,7 +241,7 @@ impl StandardFramework {
 
     async fn should_fail<'a>(
         &'a self,
-        ctx: &'a mut Context,
+        ctx: &'a Context,
         msg: &'a Message,
         args: &'a mut Args,
         command: &'static CommandOptions,
@@ -352,14 +352,14 @@ impl StandardFramework {
     ///
     /// // For information regarding this macro, learn more about it in its documentation in `command_attr`.
     /// #[command]
-    /// async fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
+    /// async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
     ///     msg.channel_id.say(&ctx.http, "pong!").await?;
     ///
     ///     Ok(())
     /// }
     ///
     /// #[command]
-    /// async fn pong(ctx: &mut Context, msg: &Message) -> CommandResult {
+    /// async fn pong(ctx: &Context, msg: &Message) -> CommandResult {
     ///     msg.channel_id.say(&ctx.http, "ping!").await?;
     ///
     ///     Ok(())
@@ -428,7 +428,7 @@ impl StandardFramework {
     /// use serenity::framework::StandardFramework;
     ///
     /// #[hook]
-    /// async fn dispatch_error_hook(context: &mut Context, msg: &Message, error: DispatchError) {
+    /// async fn dispatch_error_hook(context: &Context, msg: &Message, error: DispatchError) {
     ///     match error {
     ///         DispatchError::NotEnoughArguments { min, given } => {
     ///             let s = format!("Need {} arguments, but only got {}.", min, given);
@@ -474,7 +474,7 @@ impl StandardFramework {
     /// use serenity::framework::StandardFramework;
     ///
     /// #[hook]
-    /// async fn before_hook(_: &mut Context, _: &Message, cmd_name: &str) -> bool {
+    /// async fn before_hook(_: &Context, _: &Message, cmd_name: &str) -> bool {
     ///     println!("Running command {}", cmd_name);
     ///     true
     /// }
@@ -491,7 +491,7 @@ impl StandardFramework {
     /// use serenity::framework::StandardFramework;
     ///
     /// #[hook]
-    /// async fn before_hook(ctx: &mut Context, msg: &Message, cmd_name: &str) -> bool {
+    /// async fn before_hook(ctx: &Context, msg: &Message, cmd_name: &str) -> bool {
     ///     if let Ok(channel) = msg.channel_id.to_channel(ctx).await {
     ///         //  Don't run unless in nsfw channel
     ///         if !channel.is_nsfw() {
@@ -529,7 +529,7 @@ impl StandardFramework {
     /// use serenity::framework::StandardFramework;
     ///
     /// #[hook]
-    /// async fn after_hook(_: &mut Context, _: &Message, cmd_name: &str, error: Result<(), CommandError>) {
+    /// async fn after_hook(_: &Context, _: &Message, cmd_name: &str, error: Result<(), CommandError>) {
     ///     //  Print out an error if it happened
     ///     if let Err(why) = error {
     ///         println!("Error in {}: {:?}", cmd_name, why);
@@ -558,7 +558,7 @@ impl StandardFramework {
     /// use serenity::framework::StandardFramework;
     ///
     /// #[hook]
-    /// async fn unrecognised_command_hook(_: &mut Context, msg: &Message, unrecognised_command_name: &str) {
+    /// async fn unrecognised_command_hook(_: &Context, msg: &Message, unrecognised_command_name: &str) {
     ///     println!("A user named {:?} tried to executute an unknown command: {}",
     ///         msg.author.name, unrecognised_command_name
     ///     );
@@ -586,7 +586,7 @@ impl StandardFramework {
     /// use serenity::framework::StandardFramework;
     ///
     /// #[hook]
-    /// async fn normal_message_hook(_: &mut Context, msg: &Message) {
+    /// async fn normal_message_hook(_: &Context, msg: &Message) {
     ///     println!("Received a generic message: {:?}", msg.content);
     /// }
     ///

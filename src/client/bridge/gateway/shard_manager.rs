@@ -66,6 +66,7 @@ use crate::client::bridge::voice::ClientVoiceManager;
 /// use serenity::http::Http;
 /// use serenity::CacheAndHttp;
 /// use serenity::prelude::*;
+/// use serenity::framework::{Framework, StandardFramework};
 /// use std::sync::Arc;
 /// use std::env;
 ///
@@ -79,7 +80,7 @@ use crate::client::bridge::voice::ClientVoiceManager;
 /// let gateway_url = Arc::new(Mutex::new(http.get_gateway().await?.url));
 /// let data = Arc::new(RwLock::new(TypeMap::new()));
 /// let event_handler = Arc::new(Handler) as Arc<dyn EventHandler>;
-/// let framework = Arc::new(None);
+/// let framework = Arc::new(Box::new(StandardFramework::new()) as Box<dyn Framework + 'static + Send + Sync>);
 ///
 /// ShardManager::new(ShardManagerOptions {
 ///     data: &data,
@@ -137,7 +138,7 @@ impl ShardManager {
             event_handler: opt.event_handler.as_ref().map(|h| Arc::clone(h)),
             raw_event_handler: opt.raw_event_handler.as_ref().map(|rh| Arc::clone(rh)),
             #[cfg(feature = "framework")]
-            framework: Arc::clone(opt.framework),
+            framework: Arc::clone(&opt.framework),
             last_start: None,
             manager_tx: thread_tx.clone(),
             queue: VecDeque::new(),
@@ -240,7 +241,7 @@ impl ShardManager {
     ///
     /// # async fn run() -> Result<(), Box<dyn std::error::Error>> {
     /// let token = std::env::var("DISCORD_TOKEN")?;
-    /// let mut client = Client::new(&token, Handler).await?;
+    /// let mut client = Client::new(&token).event_handler(Handler).await?;
     ///
     /// // restart shard ID 7
     /// client.shard_manager.lock().await.restart(ShardId(7)).await;
@@ -377,7 +378,7 @@ pub struct ShardManagerOptions<'a> {
     pub event_handler: &'a Option<Arc<dyn EventHandler>>,
     pub raw_event_handler: &'a Option<Arc<dyn RawEventHandler>>,
     #[cfg(feature = "framework")]
-    pub framework: &'a Arc<Option<Box<dyn Framework + Send + Sync>>>,
+    pub framework: &'a Arc<Box<dyn Framework + Send + Sync>>,
     pub shard_index: u64,
     pub shard_init: u64,
     pub shard_total: u64,

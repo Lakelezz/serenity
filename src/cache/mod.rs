@@ -261,7 +261,7 @@ impl Cache {
     ///     }
     /// }
     ///
-    /// let mut client = Client::new("token", Handler).await?;
+    /// let mut client =Client::new("token").event_handler(Handler).await?;
     ///
     /// client.start().await?;
     /// #     Ok(())
@@ -458,7 +458,7 @@ impl Cache {
     ///
     /// # #[cfg(feature = "client")]
     /// # async fn run() -> Result<(), Box<dyn std::error::Error>> {
-    /// let mut client = Client::new("token", Handler).await?;
+    /// let mut client =Client::new("token").event_handler(Handler).await?;
     ///
     /// client.start().await?;
     /// #     Ok(())
@@ -737,7 +737,7 @@ impl Cache {
     /// # use serenity::framework::standard::{CommandResult, macros::command};
     /// #
     /// # #[command]
-    /// # async fn test(context: &mut Context) -> CommandResult {
+    /// # async fn test(context: &Context) -> CommandResult {
     /// if let Some(user) = context.cache.read().await.user(7) {
     ///     println!("User with Id 7 is currently named {}", user.read().await.name);
     /// }

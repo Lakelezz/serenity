@@ -4,7 +4,7 @@ use crate::model::{channel::Message, id::{UserId, GuildId, ChannelId}};
 use std::collections::HashSet;
 use futures::future::BoxFuture;
 
-type DynamicPrefixHook = for<'fut> fn(&'fut mut Context, &'fut Message) -> BoxFuture<'fut, Option<String>>;
+type DynamicPrefixHook = for<'fut> fn(&'fut Context, &'fut Message) -> BoxFuture<'fut, Option<String>>;
 
 /// A configuration struct for deciding whether the framework
 /// should allow optional whitespace between prefixes, group prefixes and command names.
@@ -86,7 +86,7 @@ impl From<(bool, bool, bool)> for WithWhiteSpace {
 /// let framework = StandardFramework::new()
 ///     .configure(|c| c.on_mention(Some(UserId(5))).prefix("~"));
 ///
-/// let mut client = Client::new_with_framework(&token, Handler, framework).await?;
+/// let mut client = Client::new(&token).event_handler(Handler).framework(framework).await?;
 /// #     Ok(())
 /// # }
 /// ```
@@ -261,7 +261,7 @@ impl Configuration {
     /// use serenity::framework::standard::macros::{group, command};
     ///
     /// #[command]
-    /// async fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
+    /// async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
     ///     msg.channel_id.say(&ctx.http, "Pong!").await?;
     ///     Ok(())
     /// }

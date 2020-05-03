@@ -27,7 +27,7 @@ struct Collector;
 
 #[help]
 async fn my_help(
-    context: &mut Context,
+    context: &Context,
     msg: &Message,
     args: Args,
     help_options: &'static HelpOptions,
@@ -72,7 +72,10 @@ async fn main() {
         .help(&MY_HELP)
         .group(&COLLECTOR_GROUP);
 
-    let mut client = Client::new_with_framework(&token, Handler, framework).await
+    let mut client = Client::new(&token)
+        .event_handler(Handler)
+        .framework(framework)
+        .await
         .expect("Err creating client");
 
     if let Err(why) = client.start().await {
@@ -81,9 +84,9 @@ async fn main() {
 }
 
 #[command]
-async fn challenge(ctx: &mut Context, msg: &Message, _: Args) -> CommandResult {
+async fn challenge(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let mut score = 0u32;
-    let _ =  msg.reply(&ctx, "How was that crusty crab called again? 10 seconds time!").await;
+    let _ =  msg.reply(ctx, "How was that crusty crab called again? 10 seconds time!").await;
 
     // There are methods implemented for some models to conveniently collect replies.
     // This one returns a future that will await a single message only.
@@ -92,16 +95,16 @@ async fn challenge(ctx: &mut Context, msg: &Message, _: Args) -> CommandResult {
     if let Some(answer) = &msg.author.await_reply(&ctx).timeout(Duration::from_secs(10)).await {
 
         if answer.content.to_lowercase() == "ferris" {
-            let _ = answer.reply(&ctx, "That's correct!").await;
+            let _ = answer.reply(ctx, "That's correct!").await;
             score += 1;
         } else {
-            let _ = answer.reply(&ctx, "Wrong, it's Ferris!").await;
+            let _ = answer.reply(ctx, "Wrong, it's Ferris!").await;
         }
     } else {
-        let _ =  msg.reply(&ctx, "No answer within 10 seconds.").await;
+        let _ =  msg.reply(ctx, "No answer within 10 seconds.").await;
     };
 
-    let react_msg = msg.reply(&ctx, "React with the reaction representing 1, you got 10 seconds!").await.unwrap();
+    let react_msg = msg.reply(ctx, "React with the reaction representing 1, you got 10 seconds!").await.unwrap();
 
     // The message model has a way to collect reactions on it.
     // Other methods are `await_n_reactions` and `await_all_reactions`.
@@ -115,14 +118,14 @@ async fn challenge(ctx: &mut Context, msg: &Message, _: Args) -> CommandResult {
         let emoji = &reaction.as_inner_ref().emoji;
 
         let _ = match emoji.as_data().as_str() {
-            "1️⃣" => { score += 1; msg.reply(&ctx, "That's correct!").await },
-            _ => msg.reply(&ctx, "Wrong!").await,
+            "1️⃣" => { score += 1; msg.reply(ctx, "That's correct!").await },
+            _ => msg.reply(ctx, "Wrong!").await,
         };
     } else {
-        let _ = msg.reply(&ctx, "No reaction within 10 seconds.").await;
+        let _ = msg.reply(ctx, "No reaction within 10 seconds.").await;
     };
 
-    let _ = msg.reply(&ctx, "Write 5 messages in 10 seconds").await;
+    let _ = msg.reply(ctx, "Write 5 messages in 10 seconds").await;
 
     // We can create a collector from scratch too using this builder future.
     let collector = MessageCollectorBuilder::new(&ctx)
@@ -154,7 +157,7 @@ async fn challenge(ctx: &mut Context, msg: &Message, _: Args) -> CommandResult {
         score += 1;
     }
 
-    let _ = msg.reply(&ctx, &format!("You completed {} out of 3 tasks correctly!", score)).await;
+    let _ = msg.reply(ctx, &format!("You completed {} out of 3 tasks correctly!", score)).await;
 
     Ok(())
 }

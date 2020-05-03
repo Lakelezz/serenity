@@ -38,14 +38,14 @@
 //! use serenity::framework::standard::{StandardFramework, CommandResult};
 //!
 //! #[command]
-//! async fn about(ctx: &mut Context, msg: &Message) -> CommandResult {
+//! async fn about(ctx: &Context, msg: &Message) -> CommandResult {
 //!     msg.channel_id.say(&ctx.http, "A simple test bot").await?;
 //!
 //!     Ok(())
 //! }
 //!
 //! #[command]
-//! async fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
+//! async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
 //!     msg.channel_id.say(&ctx.http, "pong!").await?;
 //!
 //!     Ok(())
@@ -70,7 +70,7 @@
 //!     // all-uppercased version of the `name` with a `_GROUP` suffix appended at the end.
 //!     .group(&GENERAL_GROUP);
 //!
-//! let mut client = Client::new_with_framework(&token, Handler, framework).await?;
+//! let mut client = Client::new(&token).event_handler(Handler).framework(framework).await?;
 //! #     Ok(())
 //! # }
 //! ```
