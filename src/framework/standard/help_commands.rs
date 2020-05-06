@@ -539,7 +539,7 @@ async fn _nested_group_command_search<'rec, 'a: 'rec>(
                 })
                 .collect();
 
-                let sub_command_names : Vec<String> = options
+                let sub_command_names: Vec<String> = options
                 .sub_commands
                 .iter()
                 .filter_map(|cmd| {
