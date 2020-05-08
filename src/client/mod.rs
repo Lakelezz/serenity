@@ -40,7 +40,8 @@ pub use crate::cache::{Cache, CacheRwLock};
 
 use crate::internal::prelude::*;
 use tokio::sync::{Mutex, RwLock};
-use self::bridge::gateway::{GatewayIntents, ShardManager, ShardManagerMonitor, ShardManagerOptions};
+use self::bridge::gateway::{GatewayIntents, ShardManager, ShardManagerMonitor, ShardManagerOptions, ShardManagerError};
+use super::gateway::GatewayError;
 use std::{
     boxed::Box,
     sync::Arc,
@@ -886,7 +887,13 @@ impl Client {
             }
         }
 
-        self.shard_manager_worker.run().await;
+        if let Err(why) = self.shard_manager_worker.run().await {
+            return match why {
+                ShardManagerError::DisallowedGatewayIntents => Err(Error::Gateway(GatewayError::DisallowedGatewayIntents)),
+                ShardManagerError::InvalidGatewayIntents => Err(Error::Gateway(GatewayError::InvalidGatewayIntents)),
+                ShardManagerError::InvalidToken => Err(Error::Gateway(GatewayError::InvalidAuthentication)),
+            }
+        }
 
         Ok(())
     }
