@@ -353,14 +353,14 @@ impl ShardRunner {
                     ShardClientMessage::Manager(ShardManagerMessage::ShardDisallowedGatewayIntents)
                     | ShardClientMessage::Manager(ShardManagerMessage::ShardInvalidAuthentication)
                     | ShardClientMessage::Manager(ShardManagerMessage::ShardInvalidGatewayIntents) => {
-                        // These variants should never be recieved
+                        // These variants should never be received.
                         warn!(
                             "[ShardRunner {:?}] Received a ShardError?",
                             self.shard.shard_info(),
                         );
 
                         true
-                    }
+                    },
                 ShardClientMessage::Runner(ShardRunnerMessage::ChunkGuilds { guild_ids, limit, query }) => {
                     self.shard.chunk_guilds(
                         guild_ids,

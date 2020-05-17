@@ -134,19 +134,19 @@ pub enum ShardManagerMessage {
     ///
     /// [`ShardRunner`]: struct.ShardRunner.html
     ShutdownFinished(ShardId),
-    /// Indicator that a shard sent invalid authentication (A bad Token) on IDENTIFY
+    /// Indicator that a shard sent invalid authentication (a bad token) on IDENTIFY
     /// Emitted when a shard recieives an [`InvalidAuthentication`] Error
     ///
     /// [`InvalidAuthentication`]: ../../../gateway/enum.Error.html#InvalidAuthentication
     ShardInvalidAuthentication,
-    /// Indicator that a shard provided undocumented gateway intents
-    /// Emitted when a shard recieves an [`InvalidGatewayIntents`] Error
+    /// Indicator that a shard provided undocumented gateway intents.
+    /// Emitted when a shard received an [`InvalidGatewayIntents`] error.
     ///
     /// [`InvalidGatewayIntents`]: ../../../gateway/enum.Error.html#InvalidGatewayIntents
     ShardInvalidGatewayIntents,
-    /// If an connection has been established but priviliged gateway intents
+    /// If a connection has been established but privileged gateway intents
     /// were provided without enabling them prior.
-    /// Emitted when a shard recieves a [`DisallowedGatewayIntents`] Error
+    /// Emitted when a shard received a [`DisallowedGatewayIntents`] error.
     ///
     /// [`DisallowedGatewayIntents`]: ../../../gateway/enum.Error.html#DisallowedGatewayIntents
     ShardDisallowedGatewayIntents,

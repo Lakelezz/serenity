@@ -32,16 +32,16 @@ pub struct ShardManagerMonitor {
 
 #[derive(Debug)]
 pub enum ShardManagerError {
-    /// Returned when a shard recieives an [`InvalidAuthentication`] Error
-    /// (A bad Token was sent)
+    /// Returned when a shard received an [`InvalidAuthentication`] error.
+    /// An invalid token has been specified.
     ///
     /// [`InvalidAuthentication`]: ../../../gateway/enum.Error.html#InvalidAuthentication
     InvalidToken,
-    /// Returned when a shard recieves an [`InvalidGatewayIntents`] Error
+    /// Returned when a shard receives an [`InvalidGatewayIntents`] error.
     ///
     /// [`InvalidGatewayIntents`]: ../../../gateway/enum.Error.html#InvalidGatewayIntents
     InvalidGatewayIntents,
-    /// Returned when a shard recieves a [`DisallowedGatewayIntents`] Error
+    /// Returned when a shard received a [`DisallowedGatewayIntents`] error.
     ///
     /// [`DisallowedGatewayIntents`]: ../../../gateway/enum.Error.html#DisallowedGatewayIntents
     DisallowedGatewayIntents,
