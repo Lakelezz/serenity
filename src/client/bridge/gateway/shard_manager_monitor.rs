@@ -47,6 +47,8 @@ pub enum ShardManagerError {
     DisallowedGatewayIntents,
 }
 
+type Result<T> = std::result::Result<T, ShardManagerError>;
+
 impl ShardManagerMonitor {
     /// "Runs" the monitor, waiting for messages over the Receiver.
     ///
@@ -105,7 +107,7 @@ impl ShardManagerMonitor {
 
                 ShardManagerMessage::ShardInvalidGatewayIntents => {
                     self.manager.lock().await.shutdown_all().await;
-                    return Err(ShardManagerError::InvalidToken);
+                    return Err(ShardManagerError::InvalidGatewayIntents);
                 },
                 ShardManagerMessage::ShardDisallowedGatewayIntents => {
                     self.manager.lock().await.shutdown_all().await;
