@@ -1,4 +1,4 @@
-use crate::gateway::{InterMessage, ReconnectType, Shard, ShardAction};
+use crate::gateway::{InterMessage, ReconnectType, Shard, ShardAction, GatewayError};
 use crate::internal::prelude::*;
 use crate::internal::ws_impl::{ReceiverExt, SenderExt};
 use crate::model::event::{Event, GatewayEvent};
@@ -560,7 +560,7 @@ impl ShardRunner {
             Err(why) => {
                 error!("Shard handler received err: {:?}", why);
                 match why {
-                    Error::Gateway(crate::prelude::GatewayError::InvalidAuthentication) => {
+                    Error::Gateway(GatewayError::InvalidAuthentication) => {
                         
                         if let Err(_) = self.manager_tx.unbounded_send(
                         ShardManagerMessage::ShardInvalidAuthentication) {
@@ -569,7 +569,7 @@ impl ShardRunner {
 
                         return Err(why);
                     },
-                    Error::Gateway(crate::prelude::GatewayError::InvalidGatewayIntents) => {
+                    Error::Gateway(GatewayError::InvalidGatewayIntents) => {
                         
                         if let Err(_) = self.manager_tx.unbounded_send(
                         ShardManagerMessage::ShardInvalidGatewayIntents) {
@@ -578,7 +578,7 @@ impl ShardRunner {
 
                         return Err(why);
                     },
-                    Error::Gateway(crate::prelude::GatewayError::DisallowedGatewayIntents) => {
+                    Error::Gateway(GatewayError::DisallowedGatewayIntents) => {
                         
                         if let Err(_) = self.manager_tx.unbounded_send(
                         ShardManagerMessage::ShardDisallowedGatewayIntents) {
