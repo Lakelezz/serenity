@@ -564,7 +564,7 @@ impl ShardRunner {
                         
                         if let Err(_) = self.manager_tx.unbounded_send(
                         ShardManagerMessage::ShardInvalidAuthentication) {
-                            warn!("Error sending InvalidAuthentication error to ShardManager");
+                            panic!("Failed sending InvalidAuthentication error to the shard manager.");
                         }
 
                         return Err(why);
@@ -573,7 +573,7 @@ impl ShardRunner {
                         
                         if let Err(_) = self.manager_tx.unbounded_send(
                         ShardManagerMessage::ShardInvalidGatewayIntents) {
-                            warn!("Error sending InvalidGatewayItents error to ShardManager");
+                            panic!("Failed sending InvalidGatewayIntents error to the shard manager.");
                         }
 
                         return Err(why);
@@ -582,7 +582,7 @@ impl ShardRunner {
                         
                         if let Err(_) = self.manager_tx.unbounded_send(
                         ShardManagerMessage::ShardDisallowedGatewayIntents) {
-                            warn!("Error sending DisallowedGatewayIntents error to ShardManager");
+                            panic!("Failed sending DisallowedGatewayIntents error to the shard manager.");
                         }
 
                         return Err(why);

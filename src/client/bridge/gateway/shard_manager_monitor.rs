@@ -60,7 +60,7 @@ impl ShardManagerMonitor {
     /// channel (probably indicating that the shard manager should stop anyway)
     ///
     /// [`ShardManagerMessage::ShutdownAll`]: enum.ShardManagerMessage.html#variant.ShutdownAll
-    pub async fn run(&mut self) -> Result<(), ShardManagerError> {
+    pub async fn run(&mut self) -> Result<()> {
         debug!("Starting shard manager worker");
 
         while let Some(value) = self.rx.next().await {
@@ -98,7 +98,6 @@ impl ShardManagerMonitor {
                         );
                     }
                 }
-                
                 ShardManagerMessage::ShardInvalidAuthentication => {
                     self.manager.lock().await.shutdown_all().await;
                     return Err(ShardManagerError::InvalidToken);
@@ -107,12 +106,11 @@ impl ShardManagerMonitor {
                 ShardManagerMessage::ShardInvalidGatewayIntents => {
                     self.manager.lock().await.shutdown_all().await;
                     return Err(ShardManagerError::InvalidToken);
-                }
-                
+                },
                 ShardManagerMessage::ShardDisallowedGatewayIntents => {
                     self.manager.lock().await.shutdown_all().await;
                     return Err(ShardManagerError::DisallowedGatewayIntents);
-                }
+                },
             }
         }
         Ok(())
