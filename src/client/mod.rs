@@ -888,11 +888,12 @@ impl Client {
         }
 
         if let Err(why) = self.shard_manager_worker.run().await {
-            return match why {
-                ShardManagerError::DisallowedGatewayIntents => Err(Error::Gateway(GatewayError::DisallowedGatewayIntents)),
-                ShardManagerError::InvalidGatewayIntents => Err(Error::Gateway(GatewayError::InvalidGatewayIntents)),
-                ShardManagerError::InvalidToken => Err(Error::Gateway(GatewayError::InvalidAuthentication)),
-            }
+            let err =  match why {
+                ShardManagerError::DisallowedGatewayIntents => GatewayError::DisallowedGatewayIntents,
+                ShardManagerError::InvalidGatewayIntents => GatewayError::InvalidGatewayIntents,
+                ShardManagerError::InvalidToken => GatewayError::InvalidAuthentication,
+            };
+            return Err(Error::Gateway(err));
         }
 
         Ok(())
