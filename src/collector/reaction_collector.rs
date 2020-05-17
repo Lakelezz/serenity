@@ -7,13 +7,10 @@ use std::{
     task::{Context as FutContext, Poll},
 };
 use tokio::{
-    sync::{
-        mpsc::{
-            unbounded_channel,
-            UnboundedReceiver as Receiver,
-            UnboundedSender as Sender,
-        },
-        Mutex,
+    sync::mpsc::{
+        unbounded_channel,
+        UnboundedReceiver as Receiver,
+        UnboundedSender as Sender,
     },
     time::{Delay, delay_for},
 };
@@ -25,8 +22,6 @@ use crate::{
     client::bridge::gateway::ShardMessenger,
     model::channel::Reaction,
 };
-
-type Shard = Arc<Mutex<ShardMessenger>>;
 
 macro_rules! impl_reaction_collector {
     ($($name:ident;)*) => {
@@ -270,16 +265,16 @@ impl_reaction_collector! {
 
 pub struct ReactionCollectorBuilder<'a> {
     filter: Option<FilterOptions>,
-    shard: Option<Shard>,
+    shard: Option<ShardMessenger>,
     timeout: Option<Delay>,
     fut: Option<BoxFuture<'a, ReactionCollector>>,
 }
 
 impl<'a> ReactionCollectorBuilder<'a> {
-    pub fn new(shard_messenger: impl AsRef<Shard>) -> Self {
+    pub fn new(shard_messenger: impl AsRef<ShardMessenger>) -> Self {
         Self {
             filter: Some(FilterOptions::default()),
-            shard: Some(Arc::clone(shard_messenger.as_ref())),
+            shard: Some(shard_messenger.as_ref().clone()),
             timeout: None,
             fut: None,
         }
@@ -296,7 +291,7 @@ impl<'a> Future for ReactionCollectorBuilder<'a> {
             let timeout = self.timeout.take();
 
             self.fut = Some(Box::pin(async move {
-                shard_messenger.lock().await.set_reaction_filter(filter);
+                shard_messenger.set_reaction_filter(filter);
 
                 ReactionCollector {
                     receiver: Box::pin(receiver),
@@ -311,16 +306,16 @@ impl<'a> Future for ReactionCollectorBuilder<'a> {
 
 pub struct CollectReaction<'a> {
     filter: Option<FilterOptions>,
-    shard: Option<Shard>,
+    shard: Option<ShardMessenger>,
     timeout: Option<Delay>,
     fut: Option<BoxFuture<'a, Option<Arc<ReactionAction>>>>,
 }
 
 impl<'a> CollectReaction<'a> {
-    pub fn new(shard_messenger: impl AsRef<Shard>) -> Self {
+    pub fn new(shard_messenger: impl AsRef<ShardMessenger>) -> Self {
         Self {
             filter: Some(FilterOptions::default()),
-            shard: Some(Arc::clone(shard_messenger.as_ref())),
+            shard: Some(shard_messenger.as_ref().clone()),
             timeout: None,
             fut: None,
         }
@@ -337,7 +332,7 @@ impl<'a> Future for CollectReaction<'a> {
             let timeout = self.timeout.take();
 
             self.fut = Some(Box::pin(async move {
-                shard_messenger.lock().await.set_reaction_filter(filter);
+                shard_messenger.set_reaction_filter(filter);
 
                 ReactionCollector {
                     receiver: Box::pin(receiver),

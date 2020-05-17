@@ -73,13 +73,8 @@ use std::{
         Result as FmtResult
     },
     time::Duration as StdDuration,
-    sync::Arc,
 };
-use tokio::sync::Mutex;
-use futures::channel::mpsc::UnboundedSender as Sender;
-use crate::gateway::{ConnectionStage, InterMessage};
-
-pub type MutexMessenger = Arc<Mutex<ShardMessenger>>;
+use crate::gateway::ConnectionStage;
 
 /// A message either for a [`ShardManager`] or a [`ShardRunner`].
 ///
@@ -194,7 +189,13 @@ pub struct ShardRunnerInfo {
     pub latency: Option<StdDuration>,
     /// The channel used to communicate with the shard runner, telling it
     /// what to do with regards to its status.
-    pub runner_tx: Sender<InterMessage>,
+    pub runner_tx: ShardMessenger,
     /// The current connection stage of the shard.
     pub stage: ConnectionStage,
+}
+
+impl AsRef<ShardMessenger> for ShardRunnerInfo {
+    fn as_ref(&self) -> &ShardMessenger {
+        &self.runner_tx
+    }
 }
