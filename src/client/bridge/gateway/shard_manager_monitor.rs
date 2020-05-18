@@ -37,7 +37,7 @@ pub enum ShardManagerError {
     ///
     /// [`InvalidAuthentication`]: ../../../gateway/enum.Error.html#InvalidAuthentication
     InvalidToken,
-    /// Returned when a shard receives an [`InvalidGatewayIntents`] error.
+    /// Returned when a shard received an [`InvalidGatewayIntents`] error.
     ///
     /// [`InvalidGatewayIntents`]: ../../../gateway/enum.Error.html#InvalidGatewayIntents
     InvalidGatewayIntents,
