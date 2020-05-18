@@ -129,8 +129,8 @@ pub enum ShardManagerMessage {
     ///
     /// [`ShardRunner`]: struct.ShardRunner.html
     ShutdownFinished(ShardId),
-    /// Indicator that a shard sent invalid authentication (a bad token) on IDENTIFY
-    /// Emitted when a shard recieives an [`InvalidAuthentication`] Error
+    /// Indicator that a shard sent invalid authentication (a bad token) when identifying with the gateway.
+    /// Emitted when a shard receives an [`InvalidAuthentication`] Error
     ///
     /// [`InvalidAuthentication`]: ../../../gateway/enum.Error.html#InvalidAuthentication
     ShardInvalidAuthentication,
