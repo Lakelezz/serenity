@@ -8,7 +8,7 @@ use super::{ShardManager, ShardManagerMessage};
 use super::super::gateway::ShardId;
 use log::{debug, warn};
 use futures::{
-    channel::mpsc::{UnboundedReceiver as Receiver, UnboundedSender as Sender},
+    channel::mpsc::{Receiver as Receiver, Sender as Sender},
     StreamExt,
 };
 
@@ -70,7 +70,10 @@ impl ShardManagerMonitor {
             match value {
                 ShardManagerMessage::Restart(shard_id) => {
                     self.manager.lock().await.restart(shard_id).await;
-                    let _  = self.shutdown.unbounded_send(shard_id);
+
+                    if let Err(why) = self.shutdown.start_send(shard_id) {
+                        warn!("[ShardMonitor] Error when sending shutdown to shard {}: {:#?}", shard_id, why)
+                    }
                 },
                 ShardManagerMessage::ShardUpdate { id, latency, stage } => {
                     let manager = self.manager.lock().await;
@@ -83,7 +86,10 @@ impl ShardManagerMonitor {
                 }
                 ShardManagerMessage::Shutdown(shard_id, code) => {
                     self.manager.lock().await.shutdown(shard_id, code);
-                    let _ = self.shutdown.unbounded_send(shard_id);
+
+                    if let Err(why) = self.shutdown.start_send(shard_id) {
+                        warn!("[ShardMonitor] Error when sending shutdown to shard {}: {:#?}", shard_id, why)
+                    }
                 },
                 ShardManagerMessage::ShutdownAll => {
                     self.manager.lock().await.shutdown_all().await;
@@ -92,7 +98,7 @@ impl ShardManagerMonitor {
                 },
                 ShardManagerMessage::ShutdownInitiated => break,
                 ShardManagerMessage::ShutdownFinished(shard_id) => {
-                    if let Err(why) = self.shutdown.unbounded_send(shard_id) {
+                    if let Err(why) = self.shutdown.start_send(shard_id) {
                         warn!(
                             "[ShardMonitor] Could not forward Shutdown signal to ShardManager for shard {}: {:#?}",
                             shard_id,

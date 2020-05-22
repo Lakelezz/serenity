@@ -8,9 +8,8 @@ use std::{
 };
 use tokio::{
     sync::mpsc::{
-        unbounded_channel,
-        UnboundedReceiver as Receiver,
-        UnboundedSender as Sender,
+        Receiver as Receiver,
+        Sender as Sender,
     },
     time::{Delay, delay_for},
 };
@@ -164,7 +163,7 @@ pub struct ReactionFilter {
 impl ReactionFilter {
     /// Creates a new filter
     fn new(options: FilterOptions) -> (Self, Receiver<Arc<ReactionAction>>) {
-        let (sender, receiver) = unbounded_channel();
+        let (sender, receiver) = mpsc::channel(100);
 
         let filter = Self {
             filtered: 0,

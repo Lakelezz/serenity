@@ -1,6 +1,6 @@
 use crate::gateway::InterMessage;
 use std::collections::HashMap;
-use futures::channel::mpsc::UnboundedSender as Sender;
+use futures::channel::mpsc::Sender as Sender;
 use crate::model::id::{ChannelId, GuildId, UserId};
 use crate::voice::{Handler, Manager};
 use crate::utils;

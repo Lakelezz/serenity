@@ -1,7 +1,7 @@
 use crate::gateway::InterMessage;
 use crate::model::id::{ChannelId, GuildId, UserId};
 use std::collections::HashMap;
-use futures::channel::mpsc::UnboundedSender as Sender;
+use futures::channel::mpsc::Sender as Sender;
 use super::Handler;
 
 /// A manager is a struct responsible for managing [`Handler`]s which belong to

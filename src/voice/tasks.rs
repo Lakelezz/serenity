@@ -1,6 +1,6 @@
 use crate::internal::Timer;
 use crate::model::id::GuildId;
-use futures::channel::mpsc::UnboundedReceiver as Receiver;
+use futures::channel::mpsc::Receiver as Receiver;
 use super::{
     connection::Connection,
     Status,

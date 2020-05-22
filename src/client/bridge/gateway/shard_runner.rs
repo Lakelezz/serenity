@@ -9,7 +9,7 @@ use std::{
     borrow::Cow,
     sync::Arc,
 };
-use futures::channel::mpsc::{self, UnboundedReceiver as Receiver, UnboundedSender as Sender};
+use futures::channel::mpsc::{self, Receiver as Receiver, Sender as Sender};
 use futures::{SinkExt, StreamExt};
 
 use super::super::super::dispatch::{DispatchEvent, dispatch};
@@ -61,7 +61,7 @@ pub struct ShardRunner {
 impl ShardRunner {
     /// Creates a new runner for a Shard.
     pub fn new(opt: ShardRunnerOptions) -> Self {
-        let (tx, rx) = mpsc::unbounded();
+        let (tx, rx) = mpsc::channel(100);
 
         Self {
             runner_rx: rx,
@@ -286,7 +286,7 @@ impl ShardRunner {
         }
 
         // Inform the manager that shutdown for this shard has finished.
-        if let Err(why) = self.manager_tx.unbounded_send(ShardManagerMessage::ShutdownFinished(id)) {
+        if let Err(why) = self.manager_tx.start_send(ShardManagerMessage::ShutdownFinished(id)) {
             warn!(
                 "[ShardRunner {:?}] Could not send ShutdownFinished: {:#?}",
                 self.shard.shard_info(),
@@ -561,8 +561,8 @@ impl ShardRunner {
                 error!("Shard handler received err: {:?}", why);
                 match why {
                     Error::Gateway(GatewayError::InvalidAuthentication) => {
-                        
-                        if let Err(_) = self.manager_tx.unbounded_send(
+
+                        if let Err(_) = self.manager_tx.start_send(
                         ShardManagerMessage::ShardInvalidAuthentication) {
                             panic!("Failed sending InvalidAuthentication error to the shard manager.");
                         }
@@ -570,8 +570,8 @@ impl ShardRunner {
                         return Err(why);
                     },
                     Error::Gateway(GatewayError::InvalidGatewayIntents) => {
-                        
-                        if let Err(_) = self.manager_tx.unbounded_send(
+
+                        if let Err(_) = self.manager_tx.start_send(
                         ShardManagerMessage::ShardInvalidGatewayIntents) {
                             panic!("Failed sending InvalidGatewayIntents error to the shard manager.");
                         }
@@ -579,8 +579,8 @@ impl ShardRunner {
                         return Err(why);
                     },
                     Error::Gateway(GatewayError::DisallowedGatewayIntents) => {
-                        
-                        if let Err(_) = self.manager_tx.unbounded_send(
+
+                        if let Err(_) = self.manager_tx.start_send(
                         ShardManagerMessage::ShardDisallowedGatewayIntents) {
                             panic!("Failed sending DisallowedGatewayIntents error to the shard manager.");
                         }
@@ -621,7 +621,7 @@ impl ShardRunner {
         let shard_id = ShardId(self.shard.shard_info()[0]);
         let msg = ShardManagerMessage::Restart(shard_id);
 
-        if let Err(error) = self.manager_tx.unbounded_send(msg) {
+        if let Err(error) = self.manager_tx.start_send(msg) {
             warn!("Error sending request restart: {:?}", error);
         }
 
@@ -633,12 +633,14 @@ impl ShardRunner {
         Ok(())
     }
 
-    fn update_manager(&self) {
-        let _ = self.manager_tx.unbounded_send(ShardManagerMessage::ShardUpdate {
+    fn update_manager(&mut self) {
+        if let Err(why) = self.manager_tx.start_send(ShardManagerMessage::ShardUpdate {
             id: ShardId(self.shard.shard_info()[0]),
             latency: self.shard.latency(),
             stage: self.shard.stage(),
-        });
+        }) {
+            log::error!("[ShardRunner {:?}] Error when sending update to manager: {:#?}", self.shard.shard_info(), why);
+        }
     }
 }
 

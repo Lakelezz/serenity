@@ -8,7 +8,7 @@ use std::{
 use futures::
     channel::mpsc::{
         self,
-        UnboundedSender as Sender
+        Sender as Sender
 };
 use super::super::super::{EventHandler, RawEventHandler};
 use super::{
@@ -119,11 +119,11 @@ impl ShardManager {
     /// Creates a new shard manager, returning both the manager and a monitor
     /// for usage in a separate thread.
     pub async fn new(opt: ShardManagerOptions<'_>) -> (Arc<Mutex<Self>>, ShardManagerMonitor) {
-        let (thread_tx, thread_rx) = mpsc::unbounded();
-        let (shard_queue_tx, shard_queue_rx) = mpsc::unbounded();
+        let (thread_tx, thread_rx) = mpsc::channel(100);
+        let (shard_queue_tx, shard_queue_rx) = mpsc::channel(100);
 
         let runners = Arc::new(Mutex::new(HashMap::new()));
-        let (shutdown_send, shutdown_recv) = mpsc::unbounded();
+        let (shutdown_send, shutdown_recv) = mpsc::channel(100);
 
         let mut shard_queuer = ShardQueuer {
             data: Arc::clone(opt.data),
@@ -269,7 +269,10 @@ impl ShardManager {
     /// stopped.
     pub fn shutdown(&mut self, shard_id: ShardId, code: u16) {
         info!("Shutting down shard {}", shard_id);
-        let _ = self.shard_queuer.unbounded_send(ShardQueuerMessage::ShutdownShard(shard_id, code));
+
+        if let Err(why) = self.shard_queuer.start_send(ShardQueuerMessage::ShutdownShard(shard_id, code)) {
+            log::error!("[ShardManager] Error when sending shutdown of shard {} to queuer: {:#?}", shard_id, why);
+        }
     }
 
     /// Sends a shutdown message for all shards that the manager is responsible
@@ -296,15 +299,22 @@ impl ShardManager {
             self.shutdown(shard_id, 1000);
         }
 
-        let _ = self.shard_queuer.unbounded_send(ShardQueuerMessage::Shutdown);
-        let _ = self.monitor_tx.unbounded_send(ShardManagerMessage::ShutdownInitiated);
+        if let Err(why) = self.shard_queuer.start_send(ShardQueuerMessage::Shutdown) {
+            log::error!("[ShardManager] Error when sending shutdown to queuer: {:#?}", why);
+        }
+
+        if let Err(why) = self.monitor_tx.start_send(ShardManagerMessage::ShutdownInitiated) {
+            log::error!("[ShardManager] Error when sending shutdown initiated to monitor: {:#?}", why);
+        }
     }
 
     fn boot(&mut self, shard_info: [ShardId; 2]) {
         info!("Telling shard queuer to start shard {}", shard_info[0]);
 
         let msg = ShardQueuerMessage::Start(shard_info[0], shard_info[1]);
-        let _ = self.shard_queuer.unbounded_send(msg);
+        if let Err(why) = self.shard_queuer.start_send(msg) {
+            log::error!("[ShardManager] Error when sending start to shard queuer: {:#?}", why);
+        }
     }
 }
 
@@ -317,8 +327,8 @@ impl Drop for ShardManager {
     /// [`ShardQueuer`]: struct.ShardQueuer.html
     /// [`ShardRunner`]: struct.ShardRunner.html
     fn drop(&mut self) {
-        let _ = self.shard_queuer.unbounded_send(ShardQueuerMessage::Shutdown);
-        let _ = self.monitor_tx.unbounded_send(ShardManagerMessage::ShutdownInitiated);
+        let _ = self.shard_queuer.start_send(ShardQueuerMessage::Shutdown);
+        let _ = self.monitor_tx.start_send(ShardManagerMessage::ShutdownInitiated);
     }
 }
 

@@ -12,10 +12,7 @@ use tokio::sync::Mutex;
 use std::sync::{
     Arc
 };
-use futures::channel::mpsc::{
-    unbounded,
-    UnboundedSender as Sender,
-};
+use futures::channel::mpsc::Sender as Sender;
 use super::connection_info::ConnectionInfo;
 use super::{Audio, AudioReceiver, AudioSource, Bitrate, Status as VoiceStatus, tasks, LockedAudio};
 use serde_json::json;
@@ -389,7 +386,7 @@ impl Handler {
         ws: Option<Sender<InterMessage>>,
         user_id: UserId,
     ) -> Self {
-        let (tx, rx) = unbounded();
+        let (tx, rx) = mpsc::channel(100);
         tasks::start(guild_id, rx);
 
         Handler {
@@ -409,11 +406,13 @@ impl Handler {
     /// Sends a message to the task.
     fn send(&mut self, status: VoiceStatus) {
         // Restart task if it errored.
-        if let Err(error) = self.sender.unbounded_send(status) {
-            let (tx, rx) = unbounded();
+        if let Err(error) = self.sender.start_send(status) {
+            let (tx, rx) = mpsc::channel(100);
 
             self.sender = tx;
-            self.sender.unbounded_send(error.into_inner()).unwrap();
+            if let Err(why) = self.sender.start_send(error.into_inner()).unwrap() {
+                log::error!("[Voice] Error sending message to task: {:#?}", why);
+            }
             tasks::start(self.guild_id, rx);
             self.update();
         }
@@ -446,7 +445,9 @@ impl Handler {
                 }
             });
 
-            let _ = ws.unbounded_send(InterMessage::Json(map));
+            if let Err(why) = ws.start_send(InterMessage::Json(map)) {
+                log::error!("[Voice] Error sending message to WS: {:#?}", why);
+            }
         }
     }
 }

@@ -8,9 +8,9 @@ use std::{
 };
 use tokio::{
     sync::mpsc::{
-        unbounded_channel,
-        UnboundedReceiver as Receiver,
-        UnboundedSender as Sender,
+        channel,
+        Receiver as Receiver,
+        Sender as Sender,
     },
     time::{Delay, delay_for},
 };
@@ -97,7 +97,7 @@ pub struct MessageFilter {
 impl MessageFilter {
     /// Creates a new filter
     fn new(options: FilterOptions) -> (Self, Receiver<Arc<Message>>) {
-        let (sender, receiver) = unbounded_channel();
+        let (sender, receiver) = channel(100);
 
         let filter = Self {
             filtered: 0,

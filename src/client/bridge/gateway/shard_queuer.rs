@@ -8,7 +8,7 @@ use std::{
     sync::Arc,
 };
 use futures::{
-    channel::mpsc::{UnboundedSender as Sender, UnboundedReceiver as Receiver},
+    channel::mpsc::{Sender as Sender, Receiver as Receiver},
     StreamExt,
 };
 use tokio::time::{delay_for, timeout, Duration, Instant};
@@ -211,6 +211,12 @@ impl ShardQueuer {
 
         tokio::spawn(async move {
             let _ = runner.run().await;
+
+            /*if runner.shard.client.close(None).await.is_ok() {
+                debug!("[ShardRunner {:?}] Stopped but stream was still open and had to be closed.",
+                    runner.shard.shard_info());
+            }*/
+
             debug!("[ShardRunner {:?}] Stopping", runner.shard.shard_info());
         });
 
@@ -250,12 +256,12 @@ impl ShardQueuer {
     pub async fn shutdown(&mut self, shard_id: ShardId, code: u16) -> bool {
         info!("Shutting down shard {}", shard_id);
 
-        if let Some(runner) = self.runners.lock().await.get(&shard_id) {
+        if let Some(ref mut runner) = self.runners.lock().await.get_mut(&shard_id) {
             let shutdown = ShardManagerMessage::Shutdown(shard_id, code);
             let client_msg = ShardClientMessage::Manager(shutdown);
             let msg = InterMessage::Client(Box::new(client_msg));
 
-            if let Err(why) = runner.runner_tx.tx.unbounded_send(msg) {
+            if let Err(why) = runner.runner_tx.tx.start_send(msg) {
                 warn!(
                     "Failed to cleanly shutdown shard {} when sending message to shard runner: {:?}",
                     shard_id,

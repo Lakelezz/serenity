@@ -47,9 +47,8 @@ use futures::{
         StreamExt,
     },
     channel::mpsc::{
-        unbounded,
-        UnboundedReceiver as Receiver,
-        UnboundedSender as Sender,
+        Receiver as Receiver,
+        Sender as Sender,
     }
 };
 use async_tungstenite::tungstenite::protocol::Message;
@@ -241,8 +240,10 @@ impl Connection {
 
         // Task may have died, we want to send to prompt a clean exit
         // (if at all possible) and then proceed as normal.
-        info!("[VOICE] Sending signal to close WebSocket Stream.");
-        let _ = self.task_items.ws_close_sender.unbounded_send(0);
+        info!("[Voice] Sending signal to close WebSocket Stream.");
+        if let Err(why) = self.task_items.ws_close_sender.start_send(0) {
+            log::error!("[Voice] Sending WS Close sender: {:#?}", why);
+        }
 
         #[cfg(all(feature = "rustls_backend", not(feature = "native_tls_backend")))]
         let mut stream = create_rustls_client(url).await?;
@@ -656,8 +657,13 @@ impl Connection {
 
 impl Drop for Connection {
     fn drop(&mut self) {
-        let _ = self.task_items.udp_close_sender.unbounded_send(0);
-        let _ = self.task_items.ws_close_sender.unbounded_send(0);
+        if let Err(why) = self.task_items.udp_close_sender.start_send(0) {
+            log::error!("[Voice] Send UDP Close error on drop: {:#?}", why);
+        }
+
+        if let Err(why) = self.task_items.ws_close_sender.start_send(0) {
+            log::error!("[Voice] Send WS Close error on drop: {:#?}", why);
+        }
 
         info!("[Voice] Disconnected");
     }
@@ -728,9 +734,9 @@ where T: for<'a> PartialEq<&'a str>,
 
 #[inline]
 async fn start_udp_task(stream: SplitStream<WsStream>, mut udp: RecvHalf) -> Result<TaskItems> {
-    let (udp_close_sender, mut udp_close_reader) = unbounded();
+    let (udp_close_sender, mut udp_close_reader) = mpsc::channel(100);
 
-    let (tx, rx) = unbounded();
+    let (tx, rx) = mpsc::channel(100);
     let tx_udp = tx.clone();
 
     let udp_task = tokio::spawn(async move {
@@ -743,7 +749,11 @@ async fn start_udp_task(stream: SplitStream<WsStream>, mut udp: RecvHalf) -> Res
             match timeout(UDP_READ_TIMEOUT, udp.recv_from(&mut buffer)).await {
                 Ok(Ok((len, _))) => {
                     let piece = buffer[..len].to_vec();
-                    let send = tx_udp.unbounded_send(ReceiverStatus::Udp(piece));
+                    if let Err(why) = tx_udp.start_send(ReceiverStatus::Udp(piece)) {
+                        log::warn!("[Voice] UDP task error when sending receiver status UDP: {:#?}", why);
+
+                        break;
+                    }
 
                     if send.is_err() {
                         break;
@@ -775,7 +785,7 @@ async fn start_udp_task(stream: SplitStream<WsStream>, mut udp: RecvHalf) -> Res
 #[inline]
 async fn start_ws_task(mut stream: SplitStream<WsStream>, tx: &Sender<ReceiverStatus>) -> Result<(Sender<i32>, JoinHandle<()>)> {
     let tx_ws = tx.clone();
-    let (ws_close_sender, mut ws_close_reader) = unbounded();
+    let (ws_close_sender, mut ws_close_reader) = mpsc::channel(100);
 
     let ws_task = tokio::spawn(async move {
             'outer: loop {
@@ -791,7 +801,8 @@ async fn start_ws_task(mut stream: SplitStream<WsStream>, tx: &Sender<ReceiverSt
                         },
                     };
 
-                    if tx_ws.unbounded_send(ReceiverStatus::Websocket(msg)).is_err() {
+                    if let Err(why) = tx_ws.start_send(ReceiverStatus::Websocket(msg)) {
+                        log::error!("[WS] Error sending receiver websocket: {:#?}", why);
                         tx_ws.close_channel();
                         break 'outer;
                     }

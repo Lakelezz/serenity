@@ -6,7 +6,7 @@ use crate::model::{
 };
 use std::sync::Arc;
 use futures::{
-    channel::mpsc::UnboundedSender as Sender,
+    channel::mpsc::Sender as Sender,
     future::{BoxFuture, FutureExt},
 };
 use tokio::sync::RwLock;

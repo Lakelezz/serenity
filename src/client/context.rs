@@ -5,7 +5,7 @@ use crate::gateway::InterMessage;
 use crate::model::prelude::*;
 use tokio::sync::RwLock;
 use std::sync::Arc;
-use futures::channel::mpsc::UnboundedSender as Sender;
+use futures::channel::mpsc::Sender as Sender;
 
 use crate::http::Http;
 use crate::utils::TypeMap;
@@ -127,7 +127,7 @@ impl Context {
     /// [`Online`]: ../model/user/enum.OnlineStatus.html#variant.Online
     #[cfg(feature = "gateway")]
     #[inline]
-    pub async fn online(&self) {
+    pub async fn online(&mut self) {
         self.shard.set_status(OnlineStatus::Online);
     }
 
@@ -164,7 +164,7 @@ impl Context {
     /// [`Idle`]: ../model/user/enum.OnlineStatus.html#variant.Idle
     #[cfg(feature = "gateway")]
     #[inline]
-    pub async fn idle(&self) {
+    pub async fn idle(&mut self) {
         self.shard.set_status(OnlineStatus::Idle);
     }
 
@@ -201,7 +201,7 @@ impl Context {
     /// [`DoNotDisturb`]: ../model/user/enum.OnlineStatus.html#variant.DoNotDisturb
     #[cfg(feature = "gateway")]
     #[inline]
-    pub async fn dnd(&self) {
+    pub async fn dnd(&mut self) {
         self.shard.set_status(OnlineStatus::DoNotDisturb);
     }
 
@@ -238,7 +238,7 @@ impl Context {
     /// [`Invisible`]: ../model/user/enum.OnlineStatus.html#variant.Invisible
     #[cfg(feature = "gateway")]
     #[inline]
-    pub async fn invisible(&self) {
+    pub async fn invisible(&mut self) {
         self.shard.set_status(OnlineStatus::Invisible);
     }
 
@@ -277,7 +277,7 @@ impl Context {
     /// [`set_presence`]: #method.set_presence
     #[cfg(feature = "gateway")]
     #[inline]
-    pub async fn reset_presence(&self) {
+    pub async fn reset_presence(&mut self) {
         self.shard.set_presence(None::<Activity>, OnlineStatus::Online);
     }
 
@@ -318,7 +318,7 @@ impl Context {
     /// [`Online`]: ../model/user/enum.OnlineStatus.html#variant.Online
     #[cfg(feature = "gateway")]
     #[inline]
-    pub async fn set_activity(&self, activity: Activity) {
+    pub async fn set_activity(&mut self, activity: Activity) {
         self.shard.set_presence(Some(activity), OnlineStatus::Online);
     }
 
@@ -385,7 +385,7 @@ impl Context {
     /// [`Idle`]: ../model/user/enum.OnlineStatus.html#variant.Idle
     #[cfg(feature = "gateway")]
     #[inline]
-    pub async fn set_presence(&self, activity: Option<Activity>, status: OnlineStatus) {
+    pub async fn set_presence(&mut self, activity: Option<Activity>, status: OnlineStatus) {
         self.shard.set_presence(activity, status);
     }
 
@@ -393,7 +393,7 @@ impl Context {
     /// sent back to `filter`'s paired receiver.
     #[inline]
     #[cfg(feature = "collector")]
-    pub async fn set_message_filter(&self, filter: MessageFilter) {
+    pub async fn set_message_filter(&mut self, filter: MessageFilter) {
         self.shard.set_message_filter(filter);
     }
 
@@ -401,7 +401,7 @@ impl Context {
     /// sent back to `filter`'s paired receiver.
     #[inline]
     #[cfg(feature = "collector")]
-    pub async fn set_reaction_filter(&self, filter: ReactionFilter) {
+    pub async fn set_reaction_filter(&mut self, filter: ReactionFilter) {
         self.shard.set_reaction_filter(filter);
     }
 }

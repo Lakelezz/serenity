@@ -1,7 +1,7 @@
 use crate::gateway::InterMessage;
 use crate::model::prelude::*;
 use super::{ShardClientMessage, ShardRunnerMessage};
-use futures::channel::mpsc::{UnboundedSender as Sender, TrySendError};
+use futures::channel::mpsc::{Sender as Sender, SendError};
 use async_tungstenite::tungstenite::Message;
 #[cfg(feature = "collector")]
 use crate::collector::{ReactionFilter, MessageFilter};
@@ -95,18 +95,20 @@ impl ShardMessenger {
     /// [`Guild`]: ../../../model/guild/struct.Guild.html
     /// [`Member`]: ../../../model/guild/struct.Member.html
     pub fn chunk_guilds<It>(
-        &self,
+        &mut self,
         guild_ids: It,
         limit: Option<u16>,
         query: Option<String>,
     ) where It: IntoIterator<Item=GuildId> {
         let guilds = guild_ids.into_iter().collect::<Vec<GuildId>>();
 
-        let _ = self.send_to_shard(ShardRunnerMessage::ChunkGuilds {
+        if let Err(why) = self.send_to_shard(ShardRunnerMessage::ChunkGuilds {
             guild_ids: guilds,
             limit,
             query,
-        });
+        }) {
+            log::error!("[ShardMessenger] Error chunking guilds: {:#?}", why);
+        }
     }
 
     /// Sets the user's current activity, if any.
@@ -132,8 +134,10 @@ impl ShardMessenger {
     /// #     Ok(())
     /// # }
     /// ```
-    pub fn set_activity(&self, activity: Option<Activity>) {
-        let _ = self.send_to_shard(ShardRunnerMessage::SetActivity(activity));
+    pub fn set_activity(&mut self, activity: Option<Activity>) {
+        if let Err(why) = self.send_to_shard(ShardRunnerMessage::SetActivity(activity)) {
+            log::error!("[ShardManager] Error sending set activity: {:#?}", why);
+        }
     }
 
     /// Sets the user's full presence information.
@@ -164,12 +168,14 @@ impl ShardMessenger {
     /// #     Ok(())
     /// # }
     /// ```
-    pub fn set_presence(&self, activity: Option<Activity>, mut status: OnlineStatus) {
+    pub fn set_presence(&mut self, activity: Option<Activity>, mut status: OnlineStatus) {
         if status == OnlineStatus::Offline {
             status = OnlineStatus::Invisible;
         }
 
-        let _ = self.send_to_shard(ShardRunnerMessage::SetPresence(status, activity));
+        if let Err(why) = self.send_to_shard(ShardRunnerMessage::SetPresence(status, activity)) {
+            log::error!("[ShardManager] Error sending set presence: {:#?}", why);
+        }
     }
 
     /// Sets the user's current online status.
@@ -203,18 +209,22 @@ impl ShardMessenger {
     /// [`DoNotDisturb`]: ../../../model/user/enum.OnlineStatus.html#variant.DoNotDisturb
     /// [`Invisible`]: ../../../model/user/enum.OnlineStatus.html#variant.Invisible
     /// [`Offline`]: ../../../model/user/enum.OnlineStatus.html#variant.Offline
-    pub fn set_status(&self, mut online_status: OnlineStatus) {
+    pub fn set_status(&mut self, mut online_status: OnlineStatus) {
         if online_status == OnlineStatus::Offline {
             online_status = OnlineStatus::Invisible;
         }
 
-        let _ = self.send_to_shard(ShardRunnerMessage::SetStatus(online_status));
+        if let Err(why) = self.send_to_shard(ShardRunnerMessage::SetStatus(online_status)) {
+            log::error!("[ShardManager] Error sending set status: {:#?}", why);
+        }
     }
 
     /// Shuts down the websocket by attempting to cleanly close the
     /// connection.
-    pub fn shutdown_clean(&self) {
-        let _ = self.send_to_shard(ShardRunnerMessage::Close(1000, None));
+    pub fn shutdown_clean(&mut self) {
+        if let Err(why) = self.send_to_shard(ShardRunnerMessage::Close(1000, None)) {
+            log::error!("[ShardManager] Error sending close 1000: {:#?}", why);
+        }
     }
 
     /// Sends a raw message over the WebSocket.
@@ -226,28 +236,34 @@ impl ShardMessenger {
     /// the [`set_presence`] method.
     ///
     /// [`set_presence`]: #method.set_presence
-    pub fn websocket_message(&self, message: Message) {
-        let _ = self.send_to_shard(ShardRunnerMessage::Message(message));
+    pub fn websocket_message(&mut self, message: Message) {
+        if let Err(why) = self.send_to_shard(ShardRunnerMessage::Message(message)) {
+            log::error!("[ShardManager] Error sending websocket message to shard: {:#?}", why);
+        }
     }
 
     /// Sends a message to the shard.
     #[inline]
-    pub fn send_to_shard(&self, msg: ShardRunnerMessage)
-        -> Result<(), TrySendError<InterMessage>> {
-        self.tx.unbounded_send(InterMessage::Client(Box::new(ShardClientMessage::Runner(msg))))
+    pub fn send_to_shard(&mut self, msg: ShardRunnerMessage)
+        -> Result<(), SendError> {
+        self.tx.start_send(InterMessage::Client(Box::new(ShardClientMessage::Runner(msg))))
     }
 
     /// Sets a new filter for a message collector.
     #[inline]
     #[cfg(feature = "collector")]
-    pub fn set_message_filter(&self, collector: MessageFilter) {
-        let _ = self.send_to_shard(ShardRunnerMessage::SetMessageFilter(collector));
+    pub fn set_message_filter(&mut self, collector: MessageFilter) {
+        if let Err(why) = self.send_to_shard(ShardRunnerMessage::SetMessageFilter(collector)) {
+            log::error!("[ShardManager] Error setting message filter: {:#?}", why);
+        }
     }
 
     /// Sets a new filter for a message collector.
     #[inline]
     #[cfg(feature = "collector")]
-    pub fn set_reaction_filter(&self, collector: ReactionFilter) {
-        let _ = self.send_to_shard(ShardRunnerMessage::SetReactionFilter(collector));
+    pub fn set_reaction_filter(&mut self, collector: ReactionFilter) {
+        if let Err(why) = self.send_to_shard(ShardRunnerMessage::SetReactionFilter(collector)) {
+            log::error!("[ShardManager] Error setting reaction filter: {:#?}", why);
+        }
     }
 }
