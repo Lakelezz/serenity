@@ -117,7 +117,8 @@ impl MessageFilter {
             if self.options.filter.as_ref().map_or(true, |f| f(&message)) {
                 self.collected += 1;
 
-                if let Err(_) = self.sender.send(Arc::clone(message)) {
+                if let Err(why) = self.sender.try_send(Arc::clone(message)) {
+                    log::error!("[MessageCollector] Could not send message: {:#?}", why);
                     return false;
                 }
             }
@@ -200,7 +201,7 @@ impl<'a> Future for MessageCollectorBuilder<'a> {
 
     fn poll(mut self: Pin<&mut Self>, ctx: &mut FutContext<'_>) -> Poll<Self::Output> {
         if self.fut.is_none() {
-            let shard_messenger = self.shard.take().unwrap();
+            let mut shard_messenger = self.shard.take().unwrap();
             let (filter, receiver) = MessageFilter::new(self.filter.take().unwrap());
             let timeout = self.timeout.take();
 
@@ -241,7 +242,7 @@ impl<'a> Future for CollectReply<'a> {
 
     fn poll(mut self: Pin<&mut Self>, ctx: &mut FutContext<'_>) -> Poll<Self::Output> {
         if self.fut.is_none() {
-            let shard_messenger = self.shard.take().unwrap();
+            let mut shard_messenger = self.shard.take().unwrap();
             let (filter, receiver) = MessageFilter::new(self.filter.take().unwrap());
             let timeout = self.timeout.take();
 

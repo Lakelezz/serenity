@@ -47,6 +47,7 @@ use futures::{
         StreamExt,
     },
     channel::mpsc::{
+        self,
         Receiver as Receiver,
         Sender as Sender,
     }
@@ -737,7 +738,7 @@ async fn start_udp_task(stream: SplitStream<WsStream>, mut udp: RecvHalf) -> Res
     let (udp_close_sender, mut udp_close_reader) = mpsc::channel(100);
 
     let (tx, rx) = mpsc::channel(100);
-    let tx_udp = tx.clone();
+    let mut tx_udp = tx.clone();
 
     let udp_task = tokio::spawn(async move {
         info!("[Voice] UDP task started.");
@@ -752,10 +753,6 @@ async fn start_udp_task(stream: SplitStream<WsStream>, mut udp: RecvHalf) -> Res
                     if let Err(why) = tx_udp.start_send(ReceiverStatus::Udp(piece)) {
                         log::warn!("[Voice] UDP task error when sending receiver status UDP: {:#?}", why);
 
-                        break;
-                    }
-
-                    if send.is_err() {
                         break;
                     }
                 },
@@ -784,7 +781,7 @@ async fn start_udp_task(stream: SplitStream<WsStream>, mut udp: RecvHalf) -> Res
 
 #[inline]
 async fn start_ws_task(mut stream: SplitStream<WsStream>, tx: &Sender<ReceiverStatus>) -> Result<(Sender<i32>, JoinHandle<()>)> {
-    let tx_ws = tx.clone();
+    let mut tx_ws = tx.clone();
     let (ws_close_sender, mut ws_close_reader) = mpsc::channel(100);
 
     let ws_task = tokio::spawn(async move {

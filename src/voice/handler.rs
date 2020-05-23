@@ -9,10 +9,11 @@ use crate::model::{
     voice::VoiceState
 };
 use tokio::sync::Mutex;
-use std::sync::{
-    Arc
+use std::sync::Arc;
+use futures::channel::{
+    mpsc,
+    mpsc::{Sender as Sender},
 };
-use futures::channel::mpsc::Sender as Sender;
 use super::connection_info::ConnectionInfo;
 use super::{Audio, AudioReceiver, AudioSource, Bitrate, Status as VoiceStatus, tasks, LockedAudio};
 use serde_json::json;
@@ -407,18 +408,17 @@ impl Handler {
     fn send(&mut self, status: VoiceStatus) {
         // Restart task if it errored.
         if let Err(error) = self.sender.start_send(status) {
+            log::error!("[Handler] Error sending message: {:#?}", error);
             let (tx, rx) = mpsc::channel(100);
 
             self.sender = tx;
-            if let Err(why) = self.sender.start_send(error.into_inner()).unwrap() {
-                log::error!("[Voice] Error sending message to task: {:#?}", why);
-            }
+
             tasks::start(self.guild_id, rx);
             self.update();
         }
     }
 
-    fn send_join(&self) {
+    fn send_join(&mut self) {
         // Do _not_ try connecting if there is not at least a channel. There
         // does not _necessarily_ need to be a guild.
         if self.channel_id.is_none() {
@@ -433,8 +433,8 @@ impl Handler {
     /// Does nothing if initialized via [`standalone`].
     ///
     /// [`standalone`]: #method.standalone
-    fn update(&self) {
-        if let Some(ref ws) = self.ws {
+    fn update(&mut self) {
+        if let Some(ref mut ws) = self.ws {
             let map = json!({
                 "op": VoiceOpCode::SessionDescription.num(),
                 "d": {

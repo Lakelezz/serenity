@@ -8,8 +8,9 @@ use std::{
 };
 use tokio::{
     sync::mpsc::{
-        Receiver as Receiver,
-        Sender as Sender,
+        channel,
+        Receiver,
+        Sender,
     },
     time::{Delay, delay_for},
 };
@@ -163,7 +164,7 @@ pub struct ReactionFilter {
 impl ReactionFilter {
     /// Creates a new filter
     fn new(options: FilterOptions) -> (Self, Receiver<Arc<ReactionAction>>) {
-        let (sender, receiver) = mpsc::channel(100);
+        let (sender, receiver) = channel(100);
 
         let filter = Self {
             filtered: 0,
@@ -181,7 +182,8 @@ impl ReactionFilter {
         if self.is_passing_constraints(&reaction) {
             self.collected += 1;
 
-            if self.sender.send(Arc::clone(reaction)).is_err() {
+            if let Err(why) = self.sender.try_send(Arc::clone(reaction)) {
+                log::error!("[ReactionCollector] Error sending reaction: {:#?}", why);
                 return false;
             }
         }
@@ -285,7 +287,7 @@ impl<'a> Future for ReactionCollectorBuilder<'a> {
 
     fn poll(mut self: Pin<&mut Self>, ctx: &mut FutContext<'_>) -> Poll<Self::Output> {
         if self.fut.is_none() {
-            let shard_messenger = self.shard.take().unwrap();
+            let mut shard_messenger = self.shard.take().unwrap();
             let (filter, receiver) = ReactionFilter::new(self.filter.take().unwrap());
             let timeout = self.timeout.take();
 
@@ -326,7 +328,7 @@ impl<'a> Future for CollectReaction<'a> {
 
     fn poll(mut self: Pin<&mut Self>, ctx: &mut FutContext<'_>) -> Poll<Self::Output> {
         if self.fut.is_none() {
-            let shard_messenger = self.shard.take().unwrap();
+            let mut shard_messenger = self.shard.take().unwrap();
             let (filter, receiver) = ReactionFilter::new(self.filter.take().unwrap());
             let timeout = self.timeout.take();
 
